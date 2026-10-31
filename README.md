@@ -8,6 +8,8 @@ GoTalk을 Rust로 옮긴 PostgreSQL + NATS + SSE 채팅 서버입니다. 원본 
 - [호환성·한계·운영 절차](docs/OPERATIONS.md)
 - [검증 기록](docs/VALIDATION.md)
 
+**2026-10-31 개인 Kubernetes 클러스터의 3개 Pod를 Rustalk으로 전환했습니다.** amd64/arm64 CI, Go 비교 테스트, 운영 읽기 전용 검증과 외부 브라우저 확인 결과는 [검증 기록](docs/VALIDATION.md)에 있습니다. [이력서용 설명과 면접 질문](docs/PORTFOLIO.md)도 함께 정리했습니다.
+
 기존 `/login`, `/update`, `/history`, `/send`, `/stream` API와 `messages`/`users` 테이블, NATS `chat.global` 메시지 JSON을 유지합니다. Go/Rust 서버가 같은 DB와 NATS를 사용하면서 점진적으로 교체될 수 있습니다. UI의 기존 `cotalk_nick`·`cotalk_color` 저장값도 이어받습니다.
 
 `/login`은 닉네임의 색상을 찾는 기능이며 사용자 인증이 아닙니다. 닉네임 소유권이나 채팅방 격리를 제공하지 않습니다. 기존 외부 접근 제어가 필요한 환경에서는 그 경계를 유지해야 합니다.

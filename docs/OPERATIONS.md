@@ -25,7 +25,7 @@ NATS Core의 live delivery는 best effort입니다. SSE 자체에 내구성 있�
 
 ## 전환 절차
 
-1. 원본 GitOps 저장소에서 `git status`, `git pull --ff-only`. 다른 변경은 보존.
+1. 원본 GitOps 저장소에서 `git status`, `git pull --ff-only`. 다른 변경은 보존. 앱뿐 아니라 DB/PV/PVC 등 같은 bundle의 hook·삭제 정책도 확인. 영속 리소스를 upgrade hook으로 만들지 않음.
 2. Go 참조 커밋과 Rust 소스를 고정하고 폐기 가능한 DB/NATS에서 비교·혼합·장애 테스트.
 3. CI가 amd64/arm64 각각 통과한 image manifest digest 확인.
 4. 서비스 selector와 분리된 Rust canary로 기존 DB 스키마·readiness 및 **읽기 전용** history 비교. 실제 채팅으로 테스트 메시지를 보내지 않음.
@@ -37,6 +37,10 @@ Go와 Rust는 같은 테이블·메시지를 사용하므로 점진적 전환 �
 
 ## 롤백
 
-배포 변경 커밋을 원본 GitOps에서 `git revert`하여 이전 Go 이미지와 probe 설정을 함께 복원하고 push합니다. Go에는 `/livez`/`/readyz`가 없으므로 **이미지만 되돌리면서 Rust probe를 남기면 안 됩니다**. Fleet의 drift correction을 사용하므로 수동 `kubectl set image`만 바꾸면 원복될 수 있습니다. 신규 대화 데이터는 그대로 유지합니다.
+애플리케이션 변경 커밋 `429aae8`만 원본 GitOps에서 `git revert`하여 이전 Go 이미지와 probe 설정을 함께 복원하고 push합니다. Go에는 `/livez`/`/readyz`가 없으므로 **이미지만 되돌리면서 Rust probe를 남기면 안 됩니다**. Fleet의 drift correction을 사용하므로 수동 `kubectl set image`만 바꾸면 원복될 수 있습니다. 신규 대화 데이터는 그대로 유지합니다. DB hook을 제거한 후속 커밋은 유지해야 합니다. hook을 되살리면 다음 upgrade에서 PVC 삭제 요청이 재발합니다.
 
 기존 Go CI는 Go 이미지 경로만 치환합니다. Rust 이미지로 전환된 Deployment에는 그 치환식이 매치되지 않지만, 이는 Rust 자동 배포 파이프라인이 구성되었다는 뜻은 아닙니다. Rust CI는 검사·이미지 게시까지만 담당하며 GitOps의 digest 승격은 명시적인 커밋으로 수행합니다.
+
+## 영속 리소스와 hook
+
+이번 전환에서 발견·복구한 사례는 [검증 기록](VALIDATION.md)에 있습니다. Helm hook은 일반 workload의 시작 순서 표시용 annotation이 아닙니다. 삭제 정책을 생략하면 다음 hook 실행 전에 기존 리소스를 삭제할 수 있습니다. DB/PV/PVC/Service는 일반 관리 리소스로 두고, 볼륨 보존 정책을 따로 확인해야 합니다. [Helm 공식 hook 문서](https://docs.helm.sh/docs/topics/charts_hooks/) 참조.
