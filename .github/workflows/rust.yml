@@ -1,0 +1,115 @@
+name: Rustalk compatibility and multiarch image
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['docs/**', '**.md', 'LICENSE', 'NOTICE']
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: rustalk-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  test-and-image:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {runner: ubuntu-24.04, arch: amd64}
+          - {runner: ubuntu-24.04-arm, arch: arm64}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 35
+    permissions:
+      contents: read
+      packages: write
+    services:
+      postgres:
+        image: postgres:18.0
+        env:
+          POSTGRES_USER: rustalk_test
+          POSTGRES_PASSWORD: disposable-test-only
+          POSTGRES_DB: postgres
+        ports: ['25432:5432']
+        options: --health-cmd "pg_isready -U rustalk_test -d postgres" --health-interval 2s --health-timeout 3s --health-retries 30
+      nats:
+        image: nats:2.12-alpine
+        ports: ['14222:4222']
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+      - name: Rust toolchain
+        run: rustup toolchain install 1.99.1 --profile minimal --component rustfmt,clippy
+      - name: Rust checks and release build
+        run: |
+          cargo fmt --check
+          cargo clippy --locked --all-targets -- -D warnings
+          cargo test --locked
+          cargo build --locked --release
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          repository: colaH16/gotalk
+          ref: 1f1bc5a86f3c99c169010dfc496628da6f16c478
+          path: .go-reference
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16
+        with:
+          go-version: '1.25.5'
+          cache: false
+      - name: Build original Go server
+        working-directory: .go-reference/backend
+        run: go build -o "$RUNNER_TEMP/gotalk-reference" .
+      - name: Differential, mixed-version and failure tests
+        env:
+          TEST_ALLOW_RESET: '1'
+          GOTALK_BINARY: ${{ runner.temp }}/gotalk-reference
+          RUSTALK_BINARY: ${{ github.workspace }}/target/release/rustalk
+        run: |
+          python3 -m venv "$RUNNER_TEMP/test-venv"
+          "$RUNNER_TEMP/test-venv/bin/pip" install -r tests/requirements.txt
+          "$RUNNER_TEMP/test-venv/bin/python" -u tests/compare.py
+      - name: Frontend (runner Node)
+        run: |
+          node --version
+          npm ci --prefix frontend
+          npm run build --prefix frontend
+          node tests/frontend.test.cjs
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
+        if: github.event_name != 'pull_request'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
+        id: image
+        with:
+          context: .
+          platforms: linux/${{ matrix.arch }}
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ghcr.io/colah16/rustalk:sha-${{ github.sha }}-${{ matrix.arch }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/colaH16/rustalk
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.licenses=Apache-2.0
+      - name: Record architecture digest
+        run: echo '${{ matrix.arch }} ${{ steps.image.outputs.digest }}' >> "$GITHUB_STEP_SUMMARY"
+  manifest:
+    needs: test-and-image
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish tested multiarch manifest
+        run: |
+          docker buildx imagetools create \
+            -t ghcr.io/colah16/rustalk:sha-${{ github.sha }} \
+            ghcr.io/colah16/rustalk:sha-${{ github.sha }}-amd64 \
+            ghcr.io/colah16/rustalk:sha-${{ github.sha }}-arm64
+          docker buildx imagetools inspect ghcr.io/colah16/rustalk:sha-${{ github.sha }} >> "$GITHUB_STEP_SUMMARY"

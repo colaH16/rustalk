@@ -1,0 +1,10 @@
+Rustalk
+Copyright 2026 colaH16
+
+Derived from colaH16/gotalk (Apache License 2.0), reference commit:
+1f1bc5a86f3c99c169010dfc496628da6f16c478
+https://github.com/colaH16/gotalk
+
+The frontend and database schema originate from GoTalk.
+The backend is a Rust reimplementation. Modified frontend files are identified
+in their headers; the comparison guide explains intentional behavior changes.

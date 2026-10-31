@@ -1,0 +1,12 @@
+# Disposable LOCAL dependencies; credentials are test values, never production secrets.
+services:
+  postgres:
+    image: postgres:18.0
+    environment:
+      POSTGRES_USER: rustalk_test
+      POSTGRES_PASSWORD: disposable-test-only
+      POSTGRES_DB: postgres
+    ports: ['127.0.0.1:25432:5432']
+  nats:
+    image: nats:2.12-alpine
+    ports: ['127.0.0.1:14222:4222']

@@ -1,0 +1,11 @@
+/target/
+/frontend/node_modules/
+/frontend/output.css
+/frontend/alpine.min.js
+.env
+*.log
+__pycache__/
+
+
+/.venv/
+/.go-reference/

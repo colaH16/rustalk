@@ -1,0 +1,36 @@
+# Disposable integration dependencies. Never apply to a production namespace.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: rustalk-validation
+  labels:
+    app.kubernetes.io/part-of: rustalk-validation
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: dependencies
+  namespace: rustalk-validation
+spec:
+  containers:
+    - name: postgres
+      image: postgres:18.0
+      env:
+        - {name: POSTGRES_USER, value: rustalk_test}
+        - {name: POSTGRES_PASSWORD, value: disposable-test-only}
+        - {name: POSTGRES_DB, value: postgres}
+      readinessProbe:
+        exec:
+          command: [pg_isready, -U, rustalk_test, -d, postgres]
+        periodSeconds: 2
+      resources:
+        requests: {cpu: 50m, memory: 128Mi}
+        limits: {cpu: '1', memory: 512Mi}
+    - name: nats
+      image: nats:2.12-alpine
+      readinessProbe:
+        tcpSocket: {port: 4222}
+        periodSeconds: 2
+      resources:
+        requests: {cpu: 20m, memory: 32Mi}
+        limits: {cpu: '1', memory: 128Mi}

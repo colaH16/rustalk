@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<!-- Derived from GoTalk (Apache-2.0). Modified for Rustalk: branding, bundled Alpine, reconnect catch-up and HTTP error handling. -->
+<html lang="ko" data-theme="pastel">
+<head>
+    <meta charset="UTF-8">
+    <title>Rustalk 🦀</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <link href="/output.css" rel="stylesheet">
+    <script defer src="/alpine.min.js"></script>
+
+    <style>
+        body { font-family: 'Apple SD Gothic Neo', sans-serif; overflow: hidden; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        @keyframes popIn {
+            0% { opacity: 0; transform: translateY(5px) scale(0.98); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .msg-anim { animation: popIn 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    </style>
+</head>
+
+<body x-data="appData()" x-init="initApp()" class="bg-blue-100 h-[100dvh] flex flex-col max-w-md mx-auto shadow-2xl relative">
+
+    <header class="bg-yellow-300 p-3 text-center font-bold text-gray-800 shadow-sm z-10 flex justify-center items-center h-12 shrink-0">
+        <span>Rustalk 🦀 <span x-text="myNick ? `(${myNick})` : ''" class="text-xs font-normal"></span></span>
+    </header>
+
+    <div id="chat-box" class="flex-1 overflow-y-auto p-2 flex flex-col gap-0.5 bg-[#b2c7d9]">
+        <div x-show="hasMore" class="text-center py-2 shrink-0">
+            <button @click="loadHistory()" class="btn btn-xs btn-neutral opacity-50 rounded-full h-6 min-h-0">⬆ 더 불러오기</button>
+        </div>
+
+        <template x-for="msg in messages" :key="msg.id">
+            <div :id="'msg-'+msg.id" class="chat msg-anim mb-0" :class="msg.sender_nick === myNick ? 'chat-end' : 'chat-start'">
+
+                <div class="chat-header text-[10px] opacity-50 mb-0.5 flex items-end gap-1 leading-none"
+                     :class="msg.sender_nick === myNick ? 'flex-row-reverse' : ''">
+                    <time class="opacity-70" x-text="msg.time"></time>
+                    <span class="font-bold" x-show="msg.sender_nick !== myNick" x-text="msg.sender_nick"></span>
+                </div>
+
+                <div class="chat-bubble text-sm shadow-sm min-h-0 pt-1 pb-0 px-3 leading-snug break-all"
+                     :class="msg.sender_nick === myNick ? 'text-gray-900' : 'bg-white text-gray-900'"
+                     :style="msg.sender_nick === myNick ? `background-color: ${myColor}` : (msg.sender_color ? `background-color: ${msg.sender_color}` : '')">
+                    <span x-text="msg.content"></span>
+                </div>
+            </div>
+        </template>
+    </div>
+
+    <div x-show="showSettings" @click.outside="showSettings = false" x-transition
+         class="absolute bottom-16 left-2 w-64 bg-white rounded-xl shadow-xl p-4 z-30 border border-gray-200" style="display: none;">
+        <h3 class="font-bold text-sm mb-3">설정 ⚙️</h3>
+        <div class="form-control w-full mb-4">
+            <label class="label py-1"><span class="label-text text-xs font-medium">내 말풍선 색상</span></label>
+            <input type="color" x-model="myColor" @change="updateColor()" class="w-full h-9 cursor-pointer rounded-md border border-gray-300 p-1">
+        </div>
+        <button @click="changeNickname()" class="btn btn-sm btn-error w-full text-white">로그아웃</button>
+    </div>
+
+    <div class="bg-white p-2 border-t border-gray-200 flex items-center gap-2 relative z-20 shrink-0">
+        <button @click="showSettings = !showSettings" class="btn btn-sm btn-circle btn-ghost text-gray-500">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M10.34 15.84c-.688-.06-1.386-.09-2.09-.09H7.5a4.5 4.5 0 110-9h.75c.704 0 1.402-.03 2.09-.09m0 9.18c.253.962.584 1.892.985 2.783.247.55.06 1.21-.463 1.511l-.657.38c-.551.318-1.26.117-1.527-.461a20.845 20.845 0 01-1.44-4.282m3.102.069a18.03 18.03 0 01-.59-4.59c0-1.586.205-3.124.59-4.59m0 9.18a23.848 23.848 0 018.835 2.535M10.34 6.66a23.847 23.847 0 008.835-2.535m0 0A23.74 23.74 0 0018.795 3m.38 1.125a23.91 23.91 0 011.014 5.395m-1.014 8.855c-.118.38-.245.754-.38 1.125m.38-1.125a23.91 23.91 0 001.014-5.395m0-3.46c.495.43.811 1.035.811 1.73 0 .695-.316 1.3-.811 1.73m0-3.46a24.347 24.347 0 010 3.46" />
+            </svg>
+        </button>
+
+        <div class="flex-1 flex gap-2">
+            <input type="text" x-model="inputMsg" @keyup.enter="sendMessage" placeholder="메시지 입력..." class="input input-bordered input-sm w-full rounded-full focus:outline-none h-10" />
+
+            <button type="button" @click="sendMessage" class="btn btn-sm btn-circle bg-yellow-300 border-none text-gray-800 hover:bg-yellow-400 h-10 w-10 shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+                    <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" />
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <dialog id="login_modal" class="modal modal-bottom sm:modal-middle bg-black/50" @click.self="document.getElementById('login_modal').close()">
+        <div class="modal-box relative">
+             <h3 class="font-bold text-lg">환영합니다! 👋</h3>
+            <p class="py-4 text-sm">채팅에서 사용할 닉네임을 입력해주세요.</p>
+            <form @submit.prevent="setNickname">
+                <input type="text" x-model="tempNick" placeholder="닉네임" class="input input-bordered w-full mb-4 focus:input-warning" autofocus />
+                <button class="btn btn-warning w-full font-bold" :disabled="!tempNick.trim()">시작하기</button>
+            </form>
+        </div>
+    </dialog>
+
+    <script>
+        function appData() {
+            return {
+                myNick: localStorage.getItem('cotalk_nick'),
+                myColor: localStorage.getItem('cotalk_color') || '#fef01b',
+                messages: [],
+                inputMsg: '',
+                showSettings: false,
+                tempNick: '',
+                hasMore: false,
+                minID: -1,
+                isLoading: false,
+                catchingUp: false,
+
+                async initApp() {
+                    if (!this.myNick) {
+                        document.getElementById('login_modal').showModal();
+                    } else {
+                        await this.checkServerColor(this.myNick);
+                        await this.loadHistory();
+                        this.connectSSE();
+                    }
+                    this.setupViewport();
+                },
+
+                setupViewport() {
+                    if (window.visualViewport) {
+                        const resizeHandler = () => {
+                            document.body.style.height = window.visualViewport.height + 'px';
+                            window.scrollTo(0, 0);
+                        };
+                        window.visualViewport.addEventListener('resize', resizeHandler);
+                        resizeHandler();
+                    }
+                },
+
+                async setNickname() {
+                    if (!this.tempNick.trim()) return;
+                    this.myNick = this.tempNick.trim();
+                    localStorage.setItem('cotalk_nick', this.myNick);
+                    await this.checkServerColor(this.myNick);
+                    document.getElementById('login_modal').close();
+                    await this.loadHistory();
+                    this.connectSSE();
+                },
+
+                async checkServerColor(nick) {
+                    try {
+                        const res = await fetch(`/login?nick=${encodeURIComponent(nick)}`);
+                        if (!res.ok) throw new Error('Login failed');
+                        const data = await res.json();
+                        if (data.color_code) this.myColor = data.color_code;
+                        localStorage.setItem('cotalk_color', this.myColor);
+                    } catch (e) { console.error(e); }
+                },
+
+                async updateColor() {
+                    localStorage.setItem('cotalk_color', this.myColor);
+                    try {
+                        const res = await fetch('/update', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                            body: `nick=${encodeURIComponent(this.myNick)}&color=${encodeURIComponent(this.myColor)}`
+                        });
+                        if (!res.ok) throw new Error('색상 변경 실패');
+                        location.reload();
+                    } catch(e) { console.error(e); }
+                },
+
+                changeNickname() {
+                    if(confirm("정말 로그아웃 하시겠습니까?")) {
+                        localStorage.removeItem('cotalk_nick');
+                        location.reload();
+                    }
+                },
+
+                async loadHistory() {
+                    if (this.isLoading) return;
+                    this.isLoading = true;
+                    let url = '/history';
+                    if (this.minID !== -1) url += `?before_id=${this.minID}`;
+
+                    try {
+                        const res = await fetch(url);
+                        if (!res.ok) throw new Error('기록을 불러오지 못했습니다');
+                        const history = await res.json();
+
+                        if (history && history.length > 0) {
+                            this.minID = history[history.length - 1].id;
+                            this.hasMore = true;
+                            const sortedHistory = history.reverse();
+                            const newMsgs = sortedHistory.filter(h => !this.messages.some(m => m.id === h.id));
+                            this.messages = [...newMsgs, ...this.messages];
+                            if (url === '/history') {
+                                this.$nextTick(this.scrollToBottom);
+                            }
+                        } else {
+                            this.hasMore = false;
+                        }
+                    } catch (e) {
+                        this.hasMore = false;
+                    } finally {
+                        this.isLoading = false;
+                    }
+                },
+
+                connectSSE() {
+                    console.log("Connecting SSE...");
+                    // [수정] 닉네임을 쿼리 파라미터로 함께 전송
+                    const evtSource = new EventSource(`/stream?nick=${encodeURIComponent(this.myNick)}`);
+
+                    evtSource.onopen = () => this.catchUp();
+                    evtSource.onmessage = (e) => {
+                        if (e.data === ":keepalive") return;
+                        const data = JSON.parse(e.data);
+                        if (this.messages.some(m => m.id === data.id)) return;
+                        this.messages.push(data);
+                        this.$nextTick(this.scrollToBottom);
+                    };
+                    evtSource.onerror = (err) => {
+                        console.error("SSE Error:", err);
+                        evtSource.close();
+                        setTimeout(() => this.connectSSE(), 1500);
+                    };
+                },
+
+                async catchUp() {
+                    // Subscribe first, then read history. Merge by ID to cover messages
+                    // committed during a disconnect without duplicating live events.
+                    if (this.catchingUp) return;
+                    this.catchingUp = true;
+                    const newest = Math.max(0, ...this.messages.map(m => m.id));
+                    let before = null;
+                    const recovered = [];
+                    try {
+                        while (true) {
+                            const res = await fetch(before === null ? '/history' : `/history?before_id=${before}`);
+                            if (!res.ok) throw new Error('기록 동기화 실패');
+                            const batch = await res.json();
+                            if (!batch || batch.length === 0) break;
+                            recovered.push(...batch.filter(m => m.id > newest));
+                            before = batch[batch.length - 1].id;
+                            if (before <= newest || newest === 0 || batch.length < 30) break;
+                        }
+                        const merged = new Map(this.messages.map(m => [m.id, m]));
+                        for (const msg of recovered) if (!merged.has(msg.id)) merged.set(msg.id, msg);
+                        this.messages = [...merged.values()].sort((a, b) => a.id - b.id);
+                        if (this.minID === -1 && this.messages.length) {
+                            this.minID = this.messages[0].id;
+                            this.hasMore = true;
+                        }
+                        this.$nextTick(this.scrollToBottom);
+                    } catch (e) { console.error(e); }
+                    finally { this.catchingUp = false; }
+                },
+
+                sendMessage() {
+                    if (!this.inputMsg.trim()) return;
+                    const msgToSend = this.inputMsg;
+                    this.inputMsg = '';
+
+                    fetch('/send', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: `msg=${encodeURIComponent(msgToSend)}&nick=${encodeURIComponent(this.myNick)}&color=${encodeURIComponent(this.myColor)}`
+                    }).then(res => {
+                        if (!res.ok) throw new Error('전송 실패');
+                    }).catch(e => {
+                        alert("전송 실패");
+                        this.inputMsg = this.inputMsg ? `${msgToSend} ${this.inputMsg}` : msgToSend;
+                    });
+                },
+
+                scrollToBottom() {
+                    const chatBox = document.getElementById('chat-box');
+                    chatBox.scrollTop = chatBox.scrollHeight;
+                }
+            }
+        }
+    </script>
+</body>
+</html>

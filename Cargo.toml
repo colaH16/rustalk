@@ -1,0 +1,28 @@
+[package]
+name = "rustalk"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+description = "GoTalk-compatible chat server in Rust: PostgreSQL, NATS and SSE"
+repository = "https://github.com/colaH16/rustalk"
+
+[dependencies]
+anyhow = "1"
+async-nats = "0.49"
+async-stream = "0.3"
+axum = "0.8"
+chrono = "0.4"
+futures-util = "0.3"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio-rustls", "postgres", "derive"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal", "net", "sync", "time"] }
+tokio-util = "0.7"
+tower-http = { version = "0.6", features = ["fs", "limit"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+url = "2"
+
+[profile.release]
+strip = true
+lto = "thin"

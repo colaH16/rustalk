@@ -1,0 +1,9 @@
+**
+!Dockerfile
+!target/
+!target/release/
+!target/release/rustalk
+!frontend/
+!frontend/index.html
+!frontend/output.css
+!frontend/alpine.min.js
