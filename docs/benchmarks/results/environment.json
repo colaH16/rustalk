@@ -1,0 +1,48 @@
+{
+  "date": "2026-10-31",
+  "platform": "Linux x86_64",
+  "exposed_vcpus": 10,
+  "host_cpu_model": "Genuine Intel(R) 0000 (virtual CPU; model unavailable)",
+  "exclusive_host": false,
+  "server_affinity": [
+    2,
+    3
+  ],
+  "client_affinity": [
+    4,
+    5
+  ],
+  "micro_affinity": [
+    2
+  ],
+  "go_server_version": "go1.25.5",
+  "rust_version": "1.99.1",
+  "api_rounds": 3,
+  "micro_rounds": 7,
+  "api_go_gomaxprocs": 2,
+  "api_tokio_worker_threads": 2,
+  "micro_go_gomaxprocs": 1,
+  "rustalk_source": "43356d31b312242a1fa28b74d71019197dafb8ca",
+  "gotalk_source": "1f1bc5a86f3c99c169010dfc496628da6f16c478",
+  "bridge_rust_source": "e387e619611f478a5bed8d35ceb55e5bf131a497",
+  "bridge_go_source": "41b4b395f37abd0b03ba858f1da6c32c02834813",
+  "postgres": "postgres:18.0",
+  "nats": "nats:2.12-alpine",
+  "dependencies_same_kubernetes_node": true,
+  "dependency_connection": "direct Pod IP (not port-forward)",
+  "postgres_limits": {
+    "cpu": "1",
+    "memory": "512Mi"
+  },
+  "nats_limits": {
+    "cpu": "1",
+    "memory": "128Mi"
+  },
+  "postgres_storage": "ephemeral container filesystem; fsync unchanged",
+  "api_request_generator": "closed-loop keep-alive HTTP; fixed request count; no browser or external ingress",
+  "api_send_payload": "same synthetic nickname; concurrent case includes row contention",
+  "api_history_seed": "100 messages of 128 ASCII bytes; response 30 records",
+  "production_requests": false,
+  "go_micro_version": "go1.25.5",
+  "go_load_client_version": "go1.25.3"
+}

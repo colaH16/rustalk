@@ -1,0 +1,408 @@
+[
+  {
+    "allocs_per_op": 1.000088,
+    "bytes_per_op": 144.005984,
+    "case": "json",
+    "gc_cycles": 20,
+    "gc_pause_total_us": 271.339,
+    "iterations": 500000,
+    "ns_per_op": 389.744224,
+    "variant": "go_gc",
+    "round": 1
+  },
+  {
+    "allocs_per_op": 1.000004,
+    "bytes_per_op": 144.000272,
+    "case": "json",
+    "gc_cycles": 0,
+    "gc_pause_total_us": 0,
+    "iterations": 500000,
+    "ns_per_op": 183.029352,
+    "variant": "go_off",
+    "round": 1
+  },
+  {
+    "case": "json",
+    "iterations": 500000,
+    "ns_per_op": 94.783032,
+    "variant": "rust",
+    "round": 1
+  },
+  {
+    "allocs_per_op": 7,
+    "bytes_per_op": 472.00048,
+    "case": "form",
+    "gc_cycles": 77,
+    "gc_pause_total_us": 465.81,
+    "iterations": 500000,
+    "ns_per_op": 324.427994,
+    "variant": "go_gc",
+    "round": 1
+  },
+  {
+    "allocs_per_op": 7,
+    "bytes_per_op": 472,
+    "case": "form",
+    "gc_cycles": 0,
+    "gc_pause_total_us": 0,
+    "iterations": 500000,
+    "ns_per_op": 408.100538,
+    "variant": "go_off",
+    "round": 1
+  },
+  {
+    "case": "form",
+    "iterations": 500000,
+    "ns_per_op": 199.206462,
+    "variant": "rust",
+    "round": 1
+  },
+  {
+    "allocs_per_op": 1.000004,
+    "bytes_per_op": 144.000272,
+    "case": "json",
+    "gc_cycles": 0,
+    "gc_pause_total_us": 0,
+    "iterations": 500000,
+    "ns_per_op": 188.276952,
+    "variant": "go_off",
+    "round": 2
+  },
+  {
+    "case": "json",
+    "iterations": 500000,
+    "ns_per_op": 94.21609,
+    "variant": "rust",
+    "round": 2
+  },
+  {
+    "allocs_per_op": 1.000092,
+    "bytes_per_op": 144.006256,
+    "case": "json",
+    "gc_cycles": 22,
+    "gc_pause_total_us": 125.269,
+    "iterations": 500000,
+    "ns_per_op": 158.79219,
+    "variant": "go_gc",
+    "round": 2
+  },
+  {
+    "allocs_per_op": 7,
+    "bytes_per_op": 472,
+    "case": "form",
+    "gc_cycles": 0,
+    "gc_pause_total_us": 0,
+    "iterations": 500000,
+    "ns_per_op": 402.866432,
+    "variant": "go_off",
+    "round": 2
+  },
+  {
+    "case": "form",
+    "iterations": 500000,
+    "ns_per_op": 210.650654,
+    "variant": "rust",
+    "round": 2
+  },
+  {
+    "allocs_per_op": 7.000002,
+    "bytes_per_op": 472.000224,
+    "case": "form",
+    "gc_cycles": 77,
+    "gc_pause_total_us": 356.766,
+    "iterations": 500000,
+    "ns_per_op": 291.840076,
+    "variant": "go_gc",
+    "round": 2
+  },
+  {
+    "case": "json",
+    "iterations": 500000,
+    "ns_per_op": 97.517198,
+    "variant": "rust",
+    "round": 3
+  },
+  {
+    "allocs_per_op": 1.000094,
+    "bytes_per_op": 144.006288,
+    "case": "json",
+    "gc_cycles": 22,
+    "gc_pause_total_us": 140.676,
+    "iterations": 500000,
+    "ns_per_op": 179.161068,
+    "variant": "go_gc",
+    "round": 3
+  },
+  {
+    "allocs_per_op": 1.000004,
+    "bytes_per_op": 144.000272,
+    "case": "json",
+    "gc_cycles": 0,
+    "gc_pause_total_us": 0,
+    "iterations": 500000,
+    "ns_per_op": 225.71315,
+    "variant": "go_off",
+    "round": 3
+  },
+  {
+    "case": "form",
+    "iterations": 500000,
+    "ns_per_op": 258.942122,
+    "variant": "rust",
+    "round": 3
+  },
+  {
+    "allocs_per_op": 7.000002,
+    "bytes_per_op": 472.00032,
+    "case": "form",
+    "gc_cycles": 77,
+    "gc_pause_total_us": 516.908,
+    "iterations": 500000,
+    "ns_per_op": 369.0255,
+    "variant": "go_gc",
+    "round": 3
+  },
+  {
+    "allocs_per_op": 7,
+    "bytes_per_op": 472,
+    "case": "form",
+    "gc_cycles": 0,
+    "gc_pause_total_us": 0,
+    "iterations": 500000,
+    "ns_per_op": 647.210056,
+    "variant": "go_off",
+    "round": 3
+  },
+  {
+    "allocs_per_op": 1.000094,
+    "bytes_per_op": 144.006288,
+    "case": "json",
+    "gc_cycles": 22,
+    "gc_pause_total_us": 125.511,
+    "iterations": 500000,
+    "ns_per_op": 171.80224,
+    "variant": "go_gc",
+    "round": 4
+  },
+  {
+    "allocs_per_op": 1.000004,
+    "bytes_per_op": 144.000272,
+    "case": "json",
+    "gc_cycles": 0,
+    "gc_pause_total_us": 0,
+    "iterations": 500000,
+    "ns_per_op": 216.852782,
+    "variant": "go_off",
+    "round": 4
+  },
+  {
+    "case": "json",
+    "iterations": 500000,
+    "ns_per_op": 102.387822,
+    "variant": "rust",
+    "round": 4
+  },
+  {
+    "allocs_per_op": 7.000002,
+    "bytes_per_op": 472.000576,
+    "case": "form",
+    "gc_cycles": 77,
+    "gc_pause_total_us": 490.857,
+    "iterations": 500000,
+    "ns_per_op": 363.21935,
+    "variant": "go_gc",
+    "round": 4
+  },
+  {
+    "allocs_per_op": 7,
+    "bytes_per_op": 472,
+    "case": "form",
+    "gc_cycles": 0,
+    "gc_pause_total_us": 0,
+    "iterations": 500000,
+    "ns_per_op": 460.69743,
+    "variant": "go_off",
+    "round": 4
+  },
+  {
+    "case": "form",
+    "iterations": 500000,
+    "ns_per_op": 248.875252,
+    "variant": "rust",
+    "round": 4
+  },
+  {
+    "allocs_per_op": 1.000004,
+    "bytes_per_op": 144.000272,
+    "case": "json",
+    "gc_cycles": 0,
+    "gc_pause_total_us": 0,
+    "iterations": 500000,
+    "ns_per_op": 225.979902,
+    "variant": "go_off",
+    "round": 5
+  },
+  {
+    "case": "json",
+    "iterations": 500000,
+    "ns_per_op": 117.769864,
+    "variant": "rust",
+    "round": 5
+  },
+  {
+    "allocs_per_op": 1.000094,
+    "bytes_per_op": 144.006288,
+    "case": "json",
+    "gc_cycles": 22,
+    "gc_pause_total_us": 160.561,
+    "iterations": 500000,
+    "ns_per_op": 194.51631,
+    "variant": "go_gc",
+    "round": 5
+  },
+  {
+    "allocs_per_op": 7,
+    "bytes_per_op": 472,
+    "case": "form",
+    "gc_cycles": 0,
+    "gc_pause_total_us": 0,
+    "iterations": 500000,
+    "ns_per_op": 490.273896,
+    "variant": "go_off",
+    "round": 5
+  },
+  {
+    "case": "form",
+    "iterations": 500000,
+    "ns_per_op": 262.313866,
+    "variant": "rust",
+    "round": 5
+  },
+  {
+    "allocs_per_op": 7.000002,
+    "bytes_per_op": 472.000416,
+    "case": "form",
+    "gc_cycles": 77,
+    "gc_pause_total_us": 483.602,
+    "iterations": 500000,
+    "ns_per_op": 345.66022,
+    "variant": "go_gc",
+    "round": 5
+  },
+  {
+    "case": "json",
+    "iterations": 500000,
+    "ns_per_op": 120.3737,
+    "variant": "rust",
+    "round": 6
+  },
+  {
+    "allocs_per_op": 1.000094,
+    "bytes_per_op": 144.006288,
+    "case": "json",
+    "gc_cycles": 22,
+    "gc_pause_total_us": 127.053,
+    "iterations": 500000,
+    "ns_per_op": 176.604474,
+    "variant": "go_gc",
+    "round": 6
+  },
+  {
+    "allocs_per_op": 1.000004,
+    "bytes_per_op": 144.000272,
+    "case": "json",
+    "gc_cycles": 0,
+    "gc_pause_total_us": 0,
+    "iterations": 500000,
+    "ns_per_op": 220.796396,
+    "variant": "go_off",
+    "round": 6
+  },
+  {
+    "case": "form",
+    "iterations": 500000,
+    "ns_per_op": 241.062504,
+    "variant": "rust",
+    "round": 6
+  },
+  {
+    "allocs_per_op": 7,
+    "bytes_per_op": 472.000064,
+    "case": "form",
+    "gc_cycles": 77,
+    "gc_pause_total_us": 438.292,
+    "iterations": 500000,
+    "ns_per_op": 350.947814,
+    "variant": "go_gc",
+    "round": 6
+  },
+  {
+    "allocs_per_op": 7,
+    "bytes_per_op": 472,
+    "case": "form",
+    "gc_cycles": 0,
+    "gc_pause_total_us": 0,
+    "iterations": 500000,
+    "ns_per_op": 450.169292,
+    "variant": "go_off",
+    "round": 6
+  },
+  {
+    "allocs_per_op": 1.000094,
+    "bytes_per_op": 144.006288,
+    "case": "json",
+    "gc_cycles": 22,
+    "gc_pause_total_us": 124.884,
+    "iterations": 500000,
+    "ns_per_op": 178.247792,
+    "variant": "go_gc",
+    "round": 7
+  },
+  {
+    "allocs_per_op": 1.000004,
+    "bytes_per_op": 144.000272,
+    "case": "json",
+    "gc_cycles": 0,
+    "gc_pause_total_us": 0,
+    "iterations": 500000,
+    "ns_per_op": 219.074388,
+    "variant": "go_off",
+    "round": 7
+  },
+  {
+    "case": "json",
+    "iterations": 500000,
+    "ns_per_op": 114.78106,
+    "variant": "rust",
+    "round": 7
+  },
+  {
+    "allocs_per_op": 7.000002,
+    "bytes_per_op": 472.00032,
+    "case": "form",
+    "gc_cycles": 77,
+    "gc_pause_total_us": 449.292,
+    "iterations": 500000,
+    "ns_per_op": 346.645268,
+    "variant": "go_gc",
+    "round": 7
+  },
+  {
+    "allocs_per_op": 7,
+    "bytes_per_op": 472,
+    "case": "form",
+    "gc_cycles": 0,
+    "gc_pause_total_us": 0,
+    "iterations": 500000,
+    "ns_per_op": 456.59156,
+    "variant": "go_off",
+    "round": 7
+  },
+  {
+    "case": "form",
+    "iterations": 500000,
+    "ns_per_op": 244.559062,
+    "variant": "rust",
+    "round": 7
+  }
+]

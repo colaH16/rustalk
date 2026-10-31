@@ -43,4 +43,4 @@ Fleet를 pause하고 비공개 DB dump를 확보·해독 검증했습니다. 원
 - [`2f09bac`](https://github.com/colaH16/gotalk-gitops/commit/2f09bac): PV/PVC lifecycle 수정.
 - [`fd881b6`](https://github.com/colaH16/gotalk-gitops/commit/fd881b65b246354fd5b66898153f0e929876075f): DB workload/Service lifecycle 수정.
 
-이 전환 전체를 무중단이라고 주장하지 않습니다. 단기 운영 검증이며 성능 향상, 장기 안정성 또는 무손실 전달을 측정한 결과도 아닙니다.
+이 전환 전체를 무중단이라고 주장하지 않습니다. 이 기록은 단기 운영 검증이며 장기 안정성 또는 무손실 전달을 측정한 결과가 아닙니다. 이후 별도 환경에서 측정한 [성능 비교](PERFORMANCE.md)는 운영 전환 검증과 구분합니다.

@@ -1,0 +1,10 @@
+[package]
+name = "rustalk-microbench"
+version = "0.1.0"
+edition = "2024"
+[dependencies]
+serde = { version = "=1.0.229", features = ["derive"] }
+serde_json = "=1.0.154"
+url = "=2.5.8"
+[profile.release]
+lto = "thin"
