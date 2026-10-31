@@ -27,15 +27,18 @@ pub async fn connect(c: &Config) -> Result<PgPool> {
         .application_name("rustalk")
         .disable_statement_logging();
     let statement_timeout = c.timeout.as_millis().to_string();
+    let timezone = c.db_timezone.clone();
     let pool = PgPoolOptions::new()
         .max_connections(c.db_max_connections)
         .acquire_timeout(c.timeout)
         .after_connect(move |conn, _| {
             let timeout = statement_timeout.clone();
+            let timezone = timezone.clone();
             Box::pin(async move {
                 // Bounds queries even when a database lock outlives the HTTP client.
-                sqlx::query("SELECT set_config('statement_timeout', $1, false)")
+                sqlx::query("SELECT set_config('statement_timeout', $1, false), set_config('TimeZone', $2, false)")
                     .bind(timeout)
+                    .bind(timezone)
                     .execute(conn)
                     .await?;
                 Ok(())

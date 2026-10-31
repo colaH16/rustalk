@@ -4,7 +4,7 @@
 
 Rust는 tracing GC를 사용하지 않아 해당 GC cycle/STW가 없습니다. 메모리 해제·할당 비용과 OS 스케줄링 지연까지 없어지는 것은 아닙니다. Go GC는 동시 실행되는 부분과 짧은 STW 구간이 있습니다. GC trace의 전체 mark 시간은 STW가 아니므로 정지 시간에 합산하지 않았습니다. [Go GC 가이드](https://go.dev/doc/gc-guide), [측정 버전 runtime 문서](https://github.com/golang/go/blob/go1.25.5/src/runtime/extern.go).
 
-microbenchmark는 프로세스마다 warmup 후 고정 반복 횟수를 측정하고 7회 중앙값을 냈습니다. 입력 준비·JSON 결과 출력·Go의 사전 `runtime.GC()`는 시간 밖입니다. Rust는 결과의 drop을 루프 안에서 수행하며 Go는 측정 중 GC 비용을 포함합니다. 따라서 GC off는 측정 이후의 메모리 회수 비용을 포함하지 않습니다. 최적화에 의한 제거는 Go 전역 sink와 Rust `black_box`로 막았습니다. 출력 샘플의 의미가 같은지도 실행기가 확인합니다. Go allocation 수는 `runtime.MemStats` 차이이고 Rust allocation 수는 측정하지 않았습니다. 첫 회를 포함한 모든 최종 측정값을 공개하며 오차 범위는 신뢰구간이 아닌 관측 최솟값~최댓값입니다.
+microbenchmark는 CPU 2 하나에 고정하고 Go는 `GOMAXPROCS=1`로 실행했습니다. 동시 GC worker도 같은 CPU 시간을 나눠 씁니다. 프로세스마다 warmup 후 고정 반복 횟수를 측정하고 7회 중앙값을 냈습니다. 입력 준비·JSON 결과 출력·Go의 사전 `runtime.GC()`는 시간 밖입니다. Rust는 결과의 drop을 루프 안에서 수행하며 Go는 측정 중 GC 비용을 포함합니다. 따라서 GC off는 측정 이후의 메모리 회수 비용을 포함하지 않습니다. 최적화에 의한 제거는 Go 전역 sink와 Rust `black_box`로 막았습니다. 출력 샘플의 의미가 같은지도 실행기가 확인합니다. Go allocation 수는 `runtime.MemStats` 차이이고 Rust allocation 수는 측정하지 않았습니다. 첫 회를 포함한 모든 최종 측정값을 공개하며 오차 범위는 신뢰구간이 아닌 관측 최솟값~최댓값입니다.
 
 ## HTTP 비교
 
@@ -58,7 +58,7 @@ VmHWM으로 읽은 프로세스 전체 최대 RSS이며 초기화·warmup을 포
 
 ### GC를 끄면 왜 항상 빨라지지 않는가
 
-GC 제거의 장점인 tracing/mark/일부 STW 비용 제거는 유효합니다. 그러나 동일 Go 바이너리의 GC off는 해제되지 않는 객체가 계속 쌓여 메모리 사용 패턴도 바뀝니다. 캐시·페이지 할당·공유 VM 노이즈 등도 가능성이 있으며, 이 실험은 그 원인을 프로파일링하지 않았습니다. 따라서 결과가 느려졌다는 이유로 GC가 공짜라고 결론내리지 않습니다. Rust의 결과에는 소유권 기반 해제와 다른 라이브러리·구현의 영향이 함께 들어갑니다.
+GC 제거의 장점인 tracing/mark/일부 STW 비용 제거는 유효합니다. 그러나 동일 Go 바이너리의 GC off는 해제되지 않는 객체가 계속 쌓여 메모리 사용 패턴도 바뀝니다. 캐시·페이지 할당·공유 VM 노이즈 등도 가능성이 있으며, 이 실험은 그 원인을 프로파일링하지 않았습니다. 따라서 결과가 느려졌다는 이유로 GC가 공짜라고 결론내리지 않습니다. Rust의 결과에는 소유권 기반 해제와 다른 라이브러리·구현의 영향이 함께 들어갑니다. 이번 실험에서 GC가 주 병목이라는 근거는 얻지 못했습니다. Go는 요청 로그와 gctrace를 기록하고 Rust는 warn 로그만 기록하므로 로그 비용도 기존 구현 비교에 포함됩니다. DB CPU 제한에 따른 throttling과 trial 순서별 WAL/checkpoint 상태는 별도 측정하지 않았습니다. API 3회는 적은 표본이며 실행 순서를 회전했어도 이 영향을 완전히 제거하지 못합니다.
 
 ## 작은 작업 microbenchmark (ns/op)
 

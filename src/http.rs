@@ -24,6 +24,7 @@ pub fn router(app: App) -> Router {
         .route("/stream", get(stream))
         .route("/livez", get(|| async { "ok\n" }))
         .route("/readyz", get(ready))
+        .route("/dependencies", get(dependencies))
         .fallback_service(ServeDir::new(&app.config.static_dir))
         .layer(RequestBodyLimitLayer::new(app.config.max_body_bytes))
         .with_state(app)
@@ -73,13 +74,33 @@ fn field<'a>(f: &'a HashMap<String, String>, name: &str) -> &'a str {
 }
 fn color(f: &HashMap<String, String>) -> &str {
     match field(f, "color") {
-        "" => "#ffffff",
-        c => c,
+        c if c.len() == 7
+            && c.starts_with('#')
+            && c.as_bytes()[1..].iter().all(u8::is_ascii_hexdigit) =>
+        {
+            c
+        }
+        _ => "#ffffff",
     }
 }
-fn database_error(_: sqlx::Error) -> StatusCode {
+fn database_error(error: sqlx::Error) -> StatusCode {
     // Do not log database error text: constraint errors can contain private values.
-    tracing::error!("database operation failed");
+    let kind = match &error {
+        sqlx::Error::Database(_) => "database",
+        sqlx::Error::PoolTimedOut => "pool_timeout",
+        sqlx::Error::PoolClosed => "pool_closed",
+        sqlx::Error::Io(_) => "io",
+        _ => "other",
+    };
+    let code = error
+        .as_database_error()
+        .and_then(|e| e.code())
+        .map(|v| v.into_owned());
+    tracing::error!(
+        kind,
+        sqlstate = code.as_deref().unwrap_or(""),
+        "database operation failed"
+    );
     StatusCode::SERVICE_UNAVAILABLE
 }
 
@@ -144,7 +165,7 @@ async fn send(State(app): State<App>, request: Request) -> ApiResult {
     if nick.is_empty() || content.is_empty() {
         return Ok(StatusCode::OK.into_response());
     }
-    if !app.connected() {
+    if app.shutdown.is_cancelled() {
         return Err(StatusCode::SERVICE_UNAVAILABLE);
     }
     let mut tx = app.pool.begin().await.map_err(database_error)?;
@@ -154,8 +175,8 @@ async fn send(State(app): State<App>, request: Request) -> ApiResult {
         .execute(&mut *tx)
         .await
         .map_err(database_error)?;
-    let id: i32 = sqlx::query_scalar(
-        "INSERT INTO messages (content, sender_pod, sender_nick) VALUES ($1, $2, $3) RETURNING id",
+    let (id, time): (i32, String) = sqlx::query_as(
+        "INSERT INTO messages (content, sender_pod, sender_nick) VALUES ($1, $2, $3) RETURNING id, to_char(created_at, 'HH24:MI:SS')",
     )
     .bind(content)
     .bind(&app.config.pod_name)
@@ -170,8 +191,15 @@ async fn send(State(app): State<App>, request: Request) -> ApiResult {
         sender_pod: app.config.pod_name.clone(),
         sender_nick: nick.into(),
         sender_color: color(&f).into(),
-        time: chrono::Local::now().format("%H:%M:%S").to_string(),
+        time,
     };
+    if !app.connected() {
+        tracing::warn!(
+            message_id = id,
+            "message stored while live delivery is disconnected"
+        );
+        return Ok(StatusCode::OK.into_response());
+    }
     let data = serde_json::to_vec(&message).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let published = tokio::time::timeout(app.config.timeout, async {
         app.nats
@@ -193,6 +221,16 @@ async fn send(State(app): State<App>, request: Request) -> ApiResult {
 }
 
 async fn ready(State(app): State<App>) -> StatusCode {
+    // Startup already checks schema and subscriptions. A shared dependency outage
+    // must not remove every replica and make static/history routes unreachable.
+    if app.shutdown.is_cancelled() {
+        StatusCode::SERVICE_UNAVAILABLE
+    } else {
+        StatusCode::OK
+    }
+}
+
+async fn dependencies(State(app): State<App>) -> StatusCode {
     if !app.connected() {
         return StatusCode::SERVICE_UNAVAILABLE;
     }
@@ -251,6 +289,12 @@ mod tests {
         assert_eq!(field(&f, "nick"), "한글");
         assert_eq!(field(&f, "msg"), "a+b c");
         assert_eq!(color(&f), "#ffffff");
+    }
+    #[test]
+    fn color_rejects_extra_css_and_database_nul() {
+        assert_eq!(color(&fields("color=%23aBcD09")), "#aBcD09");
+        assert_eq!(color(&fields("color=red%3Bposition%3Afixed")), "#ffffff");
+        assert_eq!(color(&fields("color=%00")), "#ffffff");
     }
     #[tokio::test]
     async fn post_body_precedes_query_like_go_formvalue() {

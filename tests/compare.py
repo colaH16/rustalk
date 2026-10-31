@@ -216,7 +216,7 @@ def mixed_and_faults():
     go = start('go', name)
     rs1 = start('rust', name, 18081)
     proxy = Proxy()
-    rs2 = start('rust', name, 18082, NATS_URL=f'nats://127.0.0.1:{proxy.server_address[1]}')
+    rs2 = start('rust', name, 18082, DB_TIMEZONE='Asia/Seoul', NATS_URL=f'nats://127.0.0.1:{proxy.server_address[1]}')
     streams = [Stream(port) for port in (8080, 18081, 18082)]
     time.sleep(.5)
     for i, port in enumerate((8080, 18081, 18082)):
@@ -224,6 +224,8 @@ def mixed_and_faults():
         events = [s.events.get(timeout=10) for s in streams]
         check(all(e == events[0] for e in events), 'all Go/Rust replicas receive identical NATS JSON')
         check(events[0]['content'] == f'from-{port}', 'live message content')
+        if port == 18082:
+            check(request(port, '/history')[1][0]['time'] == events[0]['time'], 'non-UTC database timestamp matches live event')
         time.sleep(.2)
         check(all(s.events.empty() for s in streams), 'no local-echo duplicates')
     check(request(8080, '/history')[1] == request(18081, '/history')[1], 'shared DB history identical')
@@ -237,15 +239,19 @@ def mixed_and_faults():
         before = c.execute('SELECT count(*) FROM messages').fetchone()[0]
     proxy.disconnect()
     for _ in range(50):
-        if request(18082, '/readyz', raw=True)[0] == 503: break
+        if request(18082, '/dependencies', raw=True)[0] == 503: break
         time.sleep(.1)
-    check(request(18082, '/readyz', raw=True)[0] == 503, 'NATS loss fails readiness')
+    check(request(18082, '/dependencies', raw=True)[0] == 503, 'NATS loss reported separately')
+    check(request(18082, '/readyz', raw=True)[0] == 200, 'NATS loss preserves service readiness')
+    check(request(18082, '/', raw=True)[0] == 200, 'static page available during NATS loss')
+    check(request(18082, '/history')[0] == 200, 'history available during NATS loss')
+    check(request(18082, '/login?nick=mixed')[0] == 200, 'profile available during NATS loss')
     check(streams[2].ended.wait(2), 'NATS disconnect closes SSE for history catch-up')
     check(request(18082, '/livez', raw=True)[0] == 200, 'dependency outage does not fail liveness')
-    check(request(18082, '/send', {'nick':'offline','msg':'not-saved'})[0] == 503, 'disconnected send rejected before DB write')
+    check(request(18082, '/send', {'nick':'offline','msg':'saved-during-outage'})[0] == 200, 'disconnected send persists to durable history')
     with psycopg.connect(**PG, dbname=name) as c:
-        check(c.execute('SELECT count(*) FROM messages').fetchone()[0] == before, 'offline send did not persist')
-    proxy.restore(); wait_ready(18082)
+        check(c.execute('SELECT count(*) FROM messages').fetchone()[0] == before + 1, 'offline send persisted exactly once')
+    proxy.restore(); wait_ready(18082, '/dependencies')
     check(request(18082, '/readyz', raw=True)[0] == 200, 'NATS reconnect recovers readiness')
     recovered = Stream(18082);time.sleep(.2)
     request(18081, '/send', {'nick':'reconnect','msg':'subscription-restored'})

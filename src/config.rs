@@ -10,6 +10,7 @@ pub struct Config {
     pub db_user: String,
     pub db_password: String,
     pub db_name: String,
+    pub db_timezone: String,
     pub db_sslmode: sqlx::postgres::PgSslMode,
     pub db_max_connections: u32,
     pub db_init_schema: bool,
@@ -20,6 +21,7 @@ pub struct Config {
     pub keepalive: Duration,
     pub timeout: Duration,
     pub shutdown_timeout: Duration,
+    pub drain_delay: Duration,
     pub max_body_bytes: usize,
 }
 
@@ -45,6 +47,7 @@ impl Config {
             db_user: value("DB_USER", "postgres"),
             db_password: value("DB_PASSWORD", ""),
             db_name: value("DB_NAME", "cotalk"),
+            db_timezone: value("DB_TIMEZONE", "UTC"),
             db_sslmode: parse("DB_SSLMODE", "disable")?,
             db_max_connections: parse("DB_MAX_CONNECTIONS", "10")?,
             db_init_schema: parse("DB_INIT_SCHEMA", "false")?,
@@ -55,6 +58,7 @@ impl Config {
             keepalive: Duration::from_secs(parse("SSE_KEEPALIVE_SECONDS", "15")?),
             timeout: Duration::from_secs(parse("DEPENDENCY_TIMEOUT_SECONDS", "5")?),
             shutdown_timeout: Duration::from_secs(parse("SHUTDOWN_TIMEOUT_SECONDS", "25")?),
+            drain_delay: Duration::from_secs(parse("DRAIN_DELAY_SECONDS", "5")?),
             max_body_bytes: parse("MAX_BODY_BYTES", "1048576")?,
         };
         if c.db_max_connections == 0
@@ -64,6 +68,7 @@ impl Config {
             || c.keepalive.is_zero()
             || c.timeout.is_zero()
             || c.shutdown_timeout.is_zero()
+            || c.drain_delay >= c.shutdown_timeout
             || c.max_body_bytes == 0
             || c.max_body_bytes > 16 * 1024 * 1024
         {

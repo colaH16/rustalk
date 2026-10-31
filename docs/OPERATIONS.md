@@ -14,7 +14,7 @@
 - DB 자동 생성은 제거. 테이블 생성은 `DB_INIT_SCHEMA=true`일 때만 허용하며 운영 기본값은 false.
 - DB 오류를 unknown user로 숨기지 않고 503. SQL/암호/메시지 내용은 오류 응답에 포함하지 않음.
 - DB 프로필/메시지 변경은 같은 트랜잭션, 연결 풀과 SQL 실행 시간 제한.
-- NATS 단절을 알고 있을 때 DB 쓰기 전 503. commit 후 live 전달 실패는 저장 성공으로 응답하고 로그로 구별.
+- NATS 단절 여부와 관계없이 DB commit이 성공하면 저장 성공을 반환하고, live 전달 확인 실패는 별도로 로그에 남깁니다.
 - request body 크기 제한; multipart는 415 (기존 웹 UI는 URLencoded만 사용).
 - `/stream`은 GET/HEAD 라우팅. 느린 SSE 소비자와 NATS 연결 변경은 재연결 유도.
 - 프런트엔드에서 HTTP 실패 상태 확인, 재연결 시 history pagination으로 빠진 메시지 보충, ID 중복 제거.
@@ -44,3 +44,9 @@ Go와 Rust는 같은 테이블·메시지를 사용하므로 점진적 전환 �
 ## 영속 리소스와 hook
 
 이번 전환에서 발견·복구한 사례는 [검증 기록](VALIDATION.md)에 있습니다. Helm hook은 일반 workload의 시작 순서 표시용 annotation이 아닙니다. 삭제 정책을 생략하면 다음 hook 실행 전에 기존 리소스를 삭제할 수 있습니다. DB/PV/PVC/Service는 일반 관리 리소스로 두고, 볼륨 보존 정책을 따로 확인해야 합니다. [Helm 공식 hook 문서](https://docs.helm.sh/docs/topics/charts_hooks/) 참조.
+
+## Claude 검토 후 장애 처리 보강
+
+readiness는 종료 상태만 확인하고 의존성 진단은 `/dependencies`로 분리했습니다. NATS 단절 중에도 DB에 저장한 메시지는 200을 반환합니다. SSE는 재연결 후 history를 보충합니다. 실시간 시각도 INSERT가 반환한 DB timestamp를 사용하며 `DB_TIMEZONE` 기본은 UTC입니다. 사용자 색상은 프런트엔드에서 6자리 hex만 표시해 과거 저장값으로 추가 CSS 속성을 주입하지 못하게 했습니다. 이 변경 전 커밋을 사용한 성능 기록은 그대로 보존합니다.
+
+색상 입력은 서버에서도 `#RRGGBB` 이외 값을 기본색으로 정규화합니다. DB_TIMEZONE은 원본 PostgreSQL의 `SHOW timezone` 값에 맞춰야 합니다. 종료 시 5초 동안 readiness를 실패시키되 listener를 유지하며, catch-up 실패는 jitter를 둔 timer로 재시도합니다.

@@ -116,8 +116,14 @@ async fn run() -> Result<()> {
         tokio::select! { _ = term.recv() => {}, _ = tokio::signal::ctrl_c() => {} }
         signal_shutdown.cancel();
     });
-    let server = axum::serve(listener, http::router(app.clone()))
-        .with_graceful_shutdown(shutdown.clone().cancelled_owned());
+    let stop_accepting = shutdown.clone();
+    let drain_delay = config.drain_delay;
+    let server =
+        axum::serve(listener, http::router(app.clone())).with_graceful_shutdown(async move {
+            stop_accepting.cancelled().await;
+            // Mark unready and close SSE first; allow endpoint updates to propagate.
+            tokio::time::sleep(drain_delay).await;
+        });
     // Serve implements IntoFuture, not Future.
     let serving = std::future::IntoFuture::into_future(server);
     tokio::pin!(serving);
@@ -133,5 +139,9 @@ async fn run() -> Result<()> {
     }
     subscriber.abort();
     signal.abort();
+    anyhow::ensure!(
+        app.subscribed.load(Ordering::Acquire),
+        "NATS subscription unexpectedly ended"
+    );
     Ok(())
 }

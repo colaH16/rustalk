@@ -44,7 +44,7 @@
 
                 <div class="chat-bubble text-sm shadow-sm min-h-0 pt-1 pb-0 px-3 leading-snug break-all"
                      :class="msg.sender_nick === myNick ? 'text-gray-900' : 'bg-white text-gray-900'"
-                     :style="msg.sender_nick === myNick ? `background-color: ${myColor}` : (msg.sender_color ? `background-color: ${msg.sender_color}` : '')">
+                     :style="{backgroundColor: safeColor(msg.sender_nick === myNick ? myColor : msg.sender_color)}">
                     <span x-text="msg.content"></span>
                 </div>
             </div>
@@ -103,6 +103,9 @@
                 minID: -1,
                 isLoading: false,
                 catchingUp: false,
+                catchUpPending: false,
+                catchUpRetryTimer: null,
+                safeColor(value) { return /^#[0-9a-fA-F]{6}$/.test(value || '') ? value : '#ffffff'; },
 
                 async initApp() {
                     if (!this.myNick) {
@@ -141,7 +144,7 @@
                         const res = await fetch(`/login?nick=${encodeURIComponent(nick)}`);
                         if (!res.ok) throw new Error('Login failed');
                         const data = await res.json();
-                        if (data.color_code) this.myColor = data.color_code;
+                        if (data.color_code) this.myColor = this.safeColor(data.color_code);
                         localStorage.setItem('cotalk_color', this.myColor);
                     } catch (e) { console.error(e); }
                 },
@@ -212,16 +215,17 @@
                     evtSource.onerror = (err) => {
                         console.error("SSE Error:", err);
                         evtSource.close();
-                        setTimeout(() => this.connectSSE(), 1500);
+                        setTimeout(() => this.connectSSE(), 1500 + Math.random() * 1000);
                     };
                 },
 
                 async catchUp() {
                     // Subscribe first, then read history. Merge by ID to cover messages
                     // committed during a disconnect without duplicating live events.
-                    if (this.catchingUp) return;
+                    if (this.catchingUp) { this.catchUpPending = true; return; }
+                    if (this.catchUpRetryTimer !== null) { clearTimeout(this.catchUpRetryTimer); this.catchUpRetryTimer = null; }
                     this.catchingUp = true;
-                    const newest = Math.max(0, ...this.messages.map(m => m.id));
+                    const newest = this.messages.reduce((max, m) => Math.max(max, m.id), 0);
                     let before = null;
                     const recovered = [];
                     try {
@@ -242,8 +246,14 @@
                             this.hasMore = true;
                         }
                         this.$nextTick(this.scrollToBottom);
-                    } catch (e) { console.error(e); }
-                    finally { this.catchingUp = false; }
+                    } catch (e) {
+                        console.error(e);
+                        this.catchUpRetryTimer = setTimeout(() => { this.catchUpRetryTimer = null; this.catchUp(); }, 1500 + Math.random() * 1000);
+                    }
+                    finally {
+                        this.catchingUp = false;
+                        if (this.catchUpPending) { this.catchUpPending = false; await this.catchUp(); }
+                    }
                 },
 
                 sendMessage() {
