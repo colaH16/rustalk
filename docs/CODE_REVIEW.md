@@ -17,3 +17,7 @@
 Claude 제안을 그대로 수용하지 않은 사례도 있습니다. `before_id` 정수 overflow가 Go에서 최신 기록을 반환한다는 가정은 실제 비교에서 DB 오류가 나서 확인되지 않았으므로 그 가정에 맞춘 변경을 제거했습니다. axum 0.8.9 Event.data가 CR 문자로 panic한다는 가설은 사용 중인 라이브러리 소스가 CR/LF를 분리 처리하므로 확인되지 않았습니다. Go와 Rust의 잘못된 입력에 대한 모든 오류 응답 호환성은 보장하지 않습니다.
 
 성능 결과는 이 수정 전 pinned commit의 측정이며 그대로 보존합니다. 전용 부하 환경, 장기 soak, 인증/닉네임 소유권, outbox/idempotency는 별도 범위입니다.
+
+## 수정본 운영 적용
+
+2026-10-31 코드 `4d93971cab6e518c9fbe78323419a78eb94b3db5`를 `ghcr.io/colah16/rustalk@sha256:f59eb2225b92a9605fe8975587fddea6a14933bf4d5ba80d60fad244ad6365e7`로 배포했습니다. amd64/arm64 CI 성공, 통합 293 assertions와 프런트엔드 5 tests 통과. 운영 3/3 Pod ready·재시작 0, livez/readyz/dependencies/history HTTP 200, 세 Pod의 최근 30개 history 응답 일치. DB_TIMEZONE=Asia/Seoul로 기존 DB 시간대를 유지했습니다. 기존 메시지 114개는 수정하지 않았습니다.
